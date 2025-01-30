@@ -1,6 +1,6 @@
 import RecipeCard from "@/components/RecipeCard";
 
-const sampleRecipes = [
+export const sampleRecipes = [
   {
     id: "1",
     name: "Classic Sourdough Bread",
