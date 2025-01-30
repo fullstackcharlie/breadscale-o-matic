@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Percent } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 
 interface RecipeDetailProps {
   recipe: Recipe;
@@ -12,15 +13,31 @@ interface RecipeDetailProps {
 const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
   const [scaleFactor, setScaleFactor] = useState(1);
   const [useBakersMath, setUseBakersMath] = useState(false);
+  const [ingredients, setIngredients] = useState(recipe.ingredients);
 
-  const calculateBakersPercentage = (amount: number) => {
-    // Find the total flour weight (sum of all flour ingredients)
-    const totalFlourWeight = recipe.ingredients
+  const getTotalFlourWeight = () => {
+    return ingredients
       .filter(ing => ing.item.toLowerCase().includes('flour'))
       .reduce((sum, ing) => sum + ing.amount, 0);
+  };
 
-    // Calculate percentage relative to total flour weight
+  const calculateBakersPercentage = (amount: number) => {
+    const totalFlourWeight = getTotalFlourWeight();
     return ((amount / totalFlourWeight) * 100).toFixed(1);
+  };
+
+  const handlePercentageChange = (index: number, newPercentage: string) => {
+    const totalFlourWeight = getTotalFlourWeight();
+    const newAmount = (parseFloat(newPercentage) * totalFlourWeight) / 100;
+
+    if (!isNaN(newAmount)) {
+      const newIngredients = [...ingredients];
+      newIngredients[index] = {
+        ...newIngredients[index],
+        amount: newAmount
+      };
+      setIngredients(newIngredients);
+    }
   };
 
   const scaleIngredient = (amount: number) => {
@@ -76,7 +93,7 @@ const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
         <Card className="p-6">
           <h2 className="text-2xl font-serif font-semibold mb-4">Ingredients</h2>
           <ul className="space-y-2">
-            {recipe.ingredients.map((ingredient, index) => (
+            {ingredients.map((ingredient, index) => (
               <li key={index} className="flex justify-between items-center">
                 <span>{ingredient.item}</span>
                 <div className="flex items-center gap-2">
@@ -84,10 +101,16 @@ const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
                     {scaleIngredient(ingredient.amount)} {ingredient.unit}
                   </span>
                   {useBakersMath && (
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    <div className="flex items-center gap-1">
                       <Percent className="h-3 w-3" />
-                      {calculateBakersPercentage(ingredient.amount)}
-                    </span>
+                      <Input
+                        type="number"
+                        value={calculateBakersPercentage(ingredient.amount)}
+                        onChange={(e) => handlePercentageChange(index, e.target.value)}
+                        className="w-20 h-6 text-sm"
+                        step="0.1"
+                      />
+                    </div>
                   )}
                 </div>
               </li>
