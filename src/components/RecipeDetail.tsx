@@ -2,7 +2,8 @@ import { Recipe } from "@/types/Recipe";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Percent } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface RecipeDetailProps {
   recipe: Recipe;
@@ -10,9 +11,21 @@ interface RecipeDetailProps {
 
 const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
   const [scaleFactor, setScaleFactor] = useState(1);
+  const [useBakersMath, setUseBakersMath] = useState(false);
+
+  const calculateBakersPercentage = (amount: number) => {
+    // Find the total flour weight (sum of all flour ingredients)
+    const totalFlourWeight = recipe.ingredients
+      .filter(ing => ing.item.toLowerCase().includes('flour'))
+      .reduce((sum, ing) => sum + ing.amount, 0);
+
+    // Calculate percentage relative to total flour weight
+    return ((amount / totalFlourWeight) * 100).toFixed(1);
+  };
 
   const scaleIngredient = (amount: number) => {
-    return (amount * scaleFactor).toFixed(2).replace(/\.?0+$/, '');
+    const scaledAmount = amount * scaleFactor;
+    return scaledAmount.toFixed(2).replace(/\.?0+$/, '');
   };
 
   return (
@@ -28,23 +41,35 @@ const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
       <h1 className="text-4xl font-serif font-bold text-brown-dark mb-4">{recipe.name}</h1>
       <p className="text-lg text-muted-foreground mb-8">{recipe.description}</p>
 
-      <div className="flex items-center gap-4 mb-8">
-        <span className="text-muted-foreground">Servings:</span>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setScaleFactor(Math.max(0.5, scaleFactor - 0.5))}
-        >
-          <Minus className="h-4 w-4" />
-        </Button>
-        <span className="font-semibold">{Math.round(recipe.servings * scaleFactor)}</span>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setScaleFactor(scaleFactor + 0.5)}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <span className="text-muted-foreground">Servings:</span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setScaleFactor(Math.max(0.5, scaleFactor - 0.5))}
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <span className="font-semibold">{Math.round(recipe.servings * scaleFactor)}</span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setScaleFactor(scaleFactor + 0.5)}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={useBakersMath}
+            onCheckedChange={setUseBakersMath}
+            id="bakers-math"
+          />
+          <label htmlFor="bakers-math" className="text-sm text-muted-foreground cursor-pointer">
+            Show Baker's Percentages
+          </label>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -52,11 +77,19 @@ const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
           <h2 className="text-2xl font-serif font-semibold mb-4">Ingredients</h2>
           <ul className="space-y-2">
             {recipe.ingredients.map((ingredient, index) => (
-              <li key={index} className="flex justify-between">
+              <li key={index} className="flex justify-between items-center">
                 <span>{ingredient.item}</span>
-                <span className="text-muted-foreground">
-                  {scaleIngredient(ingredient.amount)} {ingredient.unit}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">
+                    {scaleIngredient(ingredient.amount)} {ingredient.unit}
+                  </span>
+                  {useBakersMath && (
+                    <span className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Percent className="h-3 w-3" />
+                      {calculateBakersPercentage(ingredient.amount)}
+                    </span>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
