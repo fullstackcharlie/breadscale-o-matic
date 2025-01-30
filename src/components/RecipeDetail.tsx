@@ -2,7 +2,7 @@ import { Recipe } from "@/types/Recipe";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Percent } from "lucide-react";
+import { Percent } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 
@@ -11,9 +11,11 @@ interface RecipeDetailProps {
 }
 
 const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
-  const [scaleFactor, setScaleFactor] = useState(1);
   const [useBakersMath, setUseBakersMath] = useState(false);
   const [ingredients, setIngredients] = useState(recipe.ingredients);
+  const [totalDoughWeight, setTotalDoughWeight] = useState(
+    ingredients.reduce((sum, ing) => sum + ing.amount, 0)
+  );
 
   const getTotalFlourWeight = () => {
     return ingredients
@@ -37,12 +39,23 @@ const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
         amount: newAmount
       };
       setIngredients(newIngredients);
+      setTotalDoughWeight(newIngredients.reduce((sum, ing) => sum + ing.amount, 0));
     }
   };
 
-  const scaleIngredient = (amount: number) => {
-    const scaledAmount = amount * scaleFactor;
-    return scaledAmount.toFixed(2).replace(/\.?0+$/, '');
+  const handleDoughWeightChange = (newWeight: number) => {
+    if (!isNaN(newWeight) && newWeight > 0) {
+      const currentTotal = ingredients.reduce((sum, ing) => sum + ing.amount, 0);
+      const scaleFactor = newWeight / currentTotal;
+      
+      const newIngredients = ingredients.map(ing => ({
+        ...ing,
+        amount: ing.amount * scaleFactor
+      }));
+      
+      setIngredients(newIngredients);
+      setTotalDoughWeight(newWeight);
+    }
   };
 
   return (
@@ -60,22 +73,14 @@ const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
 
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <span className="text-muted-foreground">Servings:</span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setScaleFactor(Math.max(0.5, scaleFactor - 0.5))}
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="font-semibold">{Math.round(recipe.servings * scaleFactor)}</span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setScaleFactor(scaleFactor + 0.5)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          <span className="text-muted-foreground">Total Dough Weight (g):</span>
+          <Input
+            type="number"
+            value={Math.round(totalDoughWeight)}
+            onChange={(e) => handleDoughWeightChange(Number(e.target.value))}
+            className="w-24"
+            min="0"
+          />
         </div>
         <div className="flex items-center gap-2">
           <Switch
@@ -98,7 +103,7 @@ const RecipeDetail = ({ recipe }: RecipeDetailProps) => {
                 <span>{ingredient.item}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">
-                    {scaleIngredient(ingredient.amount)} {ingredient.unit}
+                    {ingredient.amount.toFixed(1)} {ingredient.unit}
                   </span>
                   {useBakersMath && (
                     <div className="flex items-center gap-1">
